@@ -1,76 +1,63 @@
 import React, { useState, useEffect } from "react";
 import CartItem from "./CartItem";
 import "./Cart.css";
+import { fetchCartData } from "../api/apiClient";
 
-// Zadatak 1: Iskorišteno rešenje iz Assignmenta 01 kao početna osnova
-// Komponenta Cart predstavlja korpu i prikazuje listu proizvoda i ukupan iznos
-
+// [Zadatak 2]: Iz komponente Cart uklonjen statički niz proizvoda
+// [Zadatak 3]: Dodata stanja products, loading i error pomoću useState
 const Cart = () => {
-  // Zadatak 2: useState Hook za smeštanje proizvoda u state
-  // Početni niz proizvoda je smešten u state kako bi se omogućile promene
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Blazer",
-      price: 95,
-      color: "Beige",
-      size: "S",
-      quantity: 1,
-      image: "blazer.png",
-    },
-    {
-      id: 2,
-      name: "Chunky Knit Sweater",
-      price: 55,
-      color: "Brown",
-      size: "M",
-      quantity: 1,
-      image: "sweater.png",
-    },
-    {
-      id: 3,
-      name: "Mesh Sleeve Blouse",
-      price: 32,
-      color: "Yellow",
-      size: "S",
-      quantity: 1,
-      image: "blouse.png",
-    },
-    {
-      id: 4,
-      name: "Retro Jeans",
-      price: 70,
-      color: "Black",
-      size: "S",
-      quantity: 1,
-      image: "jeans.png",
-    },
-  ]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Zadatak 8: Funkcija za dinamičko izračunavanje ukupnog iznosa
-  // Total se računa na osnovu trenutnog stanja proizvoda u stateu
+  // [Zadatak 5]: useEffect Hook za slanje GET zahteva ka API-ju
+  // [Savet 4]: Ne koristi fetch direktno u komponenti, već koristi apiClient
+  useEffect(() => {
+    const loadCartData = async () => {
+      try {
+        // [Zadatak 5]: GET zahtev ka API-ju: https://api.advanziaeducation.com/carts/1
+        console.log("Učitavanje podataka o korpi...");
+        const data = await fetchCartData(1);
+        console.log("Podaci uspešno učitani:", data);
+
+        // [Zadatak 6]: Nakon uspešnog odgovora, izvlaći proizvode iz response-a
+        // [Zadatak 12]: Prikaz poruke ako je korpa prazna
+        const productsData = data.products || [];
+        if (productsData.length === 0) {
+          console.log("Korpa je prazna.");
+        }
+        setProducts(productsData);
+        setLoading(false);
+      } catch (err) {
+        // [Zadatak 7]: Postavljanje error state i prikazivanje poruke o grešci
+        console.error("Greška pri učitavanju podataka:", err.message);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    loadCartData();
+  }, []);
+
+  // [Zadatak 11]: Funkcija za dinamičko izračunavanje ukupnog iznosa
+  // Total se računa na osnovu trenutnog stanja proizvoda u state-u
   const calculateTotal = () => {
-    return products.reduce(
+    const total = products.reduce(
       (total, product) => total + product.price * product.quantity,
       0
     );
+    console.log("Ukupan iznos korpe:", total.toFixed(2));
+    return total;
   };
 
-  // Zadatak 3: Funkcija za povećanje količine proizvoda
-  // Koristi se map() za ažuriranje samo odgovarajućeg proizvoda
   const increaseQuantity = (id) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === id
-          ? { ...product, quantity: product.quantity + 1 }
-          : product
+        product.id === id ? { ...product, quantity: product.quantity + 1 } : product
       )
     );
   };
 
-  // Zadatak 4: Funkcija za smanjenje količine proizvoda
-  // Koristi se map() za ažuriranje samo odgovarajućeg proizvoda
-  // Provera da količina ne bude manja od 1
   const decreaseQuantity = (id) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
@@ -81,28 +68,32 @@ const Cart = () => {
     );
   };
 
-  // Zadatak 5: Funkcija za uklanjanje proizvoda iz korpe
-  // Koristi se filter() za kreiranje novog niza bez uklonjenog proizvoda
   const removeProduct = (id) => {
-    setProducts((prevProducts) =>
-      prevProducts.filter((product) => product.id !== id)
-    );
+    setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
   };
 
-  // Zadatak 9: useEffect Hook za praćenje promene stanja
-  // Izvršava se svaki put kada se promeni niz proizvoda
-  useEffect(() => {
-    console.log("Cart updated:", products);
-  }, [products]); // Zavisnost: products
+  // [Zadatak 8]: Prikaz poruke dok se podaci učitavaju
+  if (loading) {
+    console.log("Loading...");
+    return <div className="cart">Loading…</div>;
+  }
+
+  // [Zadatak 7]: Prikaz poruke u slučaju greške
+  if (error) {
+    console.error("Greška:", error);
+    return <div className="cart">Something went wrong.</div>;
+  }
+
+  console.log("Trenutni proizvodi u korpi:", products);
 
   return (
     <div className="cart">
       <h2>Your Cart</h2>
       <div className="cart-items">
-        {/* Zadatak 10: Prikaz poruke kada je korpa prazna */}
+        {/* [Zadatak 12]: Prikaz poruke ako je korpa prazna */}
         {products.length > 0 ? (
           products.map((product) => (
-            // Zadatak 6: Funkcije se prosleđuju u CartItem preko propsa
+            // [Zadatak 10]: Prikazivanje liste proizvoda koristeći CartItem komponentu
             <CartItem
               key={product.id}
               product={product}
@@ -115,9 +106,9 @@ const Cart = () => {
           <p>Your cart is empty.</p>
         )}
       </div>
-      {/* Zadatak 8: Prikaz ukupnog iznosa koji se dinamički ažurira */}
+      {/* [Zadatak 11]: Prikaz ukupnog iznosa koji se dinamički ažurira */}
       <div className="cart-total">
-        <h3>Total: ${calculateTotal()}</h3>
+        <h3>Total: ${calculateTotal().toFixed(2)}</h3>
       </div>
     </div>
   );
